@@ -25,7 +25,7 @@ from augmentation_image import MultiThreadGenerator as NoiseGenerator
 if platform.system() == "Windows":
     import win32com.client as client
 elif platform.system() == "Linux":
-    cline = None
+    client = None
 
 
 source_path = "example/test.txt"
