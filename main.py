@@ -7,6 +7,7 @@ import concurrent.futures
 import platform
 import os
 import shutil
+import subprocess
 from PIL import Image
 from docx import Document, shared, enum
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
@@ -22,9 +23,9 @@ from augmentation_image import MultiThreadGenerator as NoiseGenerator
 
 
 if platform.system() == "Windows":
-    import win32com.client as app_object
+    import win32com.client as client
 elif platform.system() == "Linux":
-    import comtypes.client as app_object
+    cline = None
 
 
 source_path = "example/test.txt"
@@ -56,21 +57,45 @@ def create_docx_file(source_path, outdir):
 
 
 def convert_docx_to_pdf(inputdir, outdir):
-    wdFormatPDF = 17
-    word = app_object.Dispatch('Word.Application')
-    count = 0
-    ensure_dir(outdir)
-    for in_file in glob.glob(inputdir + "*.docx"):
-        start_time = time.time()
-        in_file = os.path.join(os.getcwd(), in_file)
-        outdir = os.path.join(os.getcwd(), outdir)
-        out_file = os.path.join(outdir, os.path.basename(in_file).replace(".docx", ".pdf"))
-        doc = word.Documents.Open(in_file)
-        doc.SaveAs(out_file, FileFormat=wdFormatPDF)
-        count += 1
-        print("\rProcessed: " + str(count) + " || time: " + str(time.time() - start_time), end="")
-        doc.Close()
-    word.Quit()
+    if client == None:
+        """
+        convert a doc/docx document to pdf format (linux only, requires libreoffice)
+        :param doc: path to document
+        """
+        count = 0
+        for in_file in glob.glob(inputdir + "*.docx"):
+            start_time = time.time()
+            args = [
+                "libreoffice",
+                '--headless',
+                '--convert-to',
+                'pdf',
+                '--outdir',
+                outdir,
+                in_file
+            ]
+            process = subprocess.run(args,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE)            
+            count += 1
+            print("\rProcessed: " + str(count) + " || time: " + str(time.time() - start_time), end="")
+
+    else:
+        wdFormatPDF = 17
+        word = client.Dispatch('Word.Application')
+        count = 0
+        ensure_dir(outdir)
+        for in_file in glob.glob(inputdir + "*.docx"):
+            start_time = time.time()
+            in_file = os.path.join(os.getcwd(), in_file)
+            outdir = os.path.join(os.getcwd(), outdir)
+            out_file = os.path.join(outdir, os.path.basename(in_file).replace(".docx", ".pdf"))
+            doc = word.Documents.Open(in_file)
+            doc.SaveAs(out_file, FileFormat=wdFormatPDF)
+            count += 1
+            print("\rProcessed: " + str(count) + " || time: " + str(time.time() - start_time), end="")
+            doc.Close()
+        word.Quit()
 
 
 def extract_text_from_pdf(inputdir):
